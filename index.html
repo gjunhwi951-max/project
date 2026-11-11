@@ -3,257 +3,230 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>과일 공장 짓기! - 3D 타이쿤</title>
+<title>과일 공장 짓기! - 풀버전 3D 타이쿤</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', sans-serif; user-select: none; }
-  body { display: flex; height: 100vh; overflow: hidden; background: #87CEEB; }
+  body { display: flex; width: 100vw; height: 100vh; overflow: hidden; background: #87CEEB; }
   
   /* 왼쪽 3D 게임 화면 */
-  #game-container { flex: 1; position: relative; overflow: hidden; }
+  #game-container { flex: 1; height: 100vh; position: relative; overflow: hidden; background: #87CEEB; }
   #controls-hint {
-    position: absolute; bottom: 20px; left: 20px;
-    background: rgba(0, 0, 0, 0.6); color: white;
-    padding: 10px 16px; border-radius: 12px; font-size: 14px;
-    pointer-events: none;
+    position: absolute; bottom: 16px; left: 16px;
+    background: rgba(0, 0, 0, 0.7); color: white;
+    padding: 10px 16px; border-radius: 12px; font-size: 13px;
+    pointer-events: none; z-index: 5;
+  }
+  #pad-status {
+    position: absolute; top: 16px; left: 16px;
+    background: rgba(255, 255, 255, 0.9); color: #333;
+    padding: 10px 16px; border-radius: 12px; font-size: 14px; font-weight: bold;
+    border: 2px solid #f1c40f; z-index: 5;
   }
   #toast {
     position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
     background: #ffeb3b; color: #333; font-weight: bold;
-    padding: 12px 24px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    opacity: 0; transition: opacity 0.3s; pointer-events: none; font-size: 16px;
+    padding: 12px 24px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; font-size: 15px; z-index: 20;
   }
+
+  /* 원작 시스템: 친구 문자 거래 팝업 (좌측 하단) */
+  #sms-popup {
+    position: absolute; bottom: 65px; left: 16px; width: 310px;
+    background: #ffffff; border: 3px solid #3498db; border-radius: 16px;
+    padding: 14px; box-shadow: 0 6px 20px rgba(0,0,0,0.25); z-index: 15;
+    display: none; animation: popIn 0.3s ease;
+  }
+  @keyframes popIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sms-header { font-size: 13px; font-weight: bold; color: #2980b9; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .sms-body { font-size: 13px; color: #333; background: #ebf5fb; padding: 10px; border-radius: 10px; margin-bottom: 10px; line-height: 1.4; }
+  .sms-btns { display: flex; gap: 6px; }
+  .sms-btn { flex: 1; padding: 8px 4px; border: none; border-radius: 8px; font-size: 12px; font-weight: bold; color: white; cursor: pointer; }
 
   /* 오른쪽 UI 패널 */
   #ui-panel {
-    width: 340px; background: #fffdf5; border-left: 4px solid #f4d03f;
-    display: flex; flex-direction: column; padding: 20px; gap: 15px;
-    box-shadow: -4px 0 15px rgba(0,0,0,0.1); z-index: 10;
+    width: 370px; height: 100vh; background: #fffdf5; border-left: 4px solid #f4d03f;
+    display: flex; flex-direction: column; padding: 14px; gap: 10px;
+    box-shadow: -4px 0 15px rgba(0,0,0,0.1); z-index: 10; overflow-y: auto;
   }
-  .title-box { text-align: center; background: #f9e79f; padding: 12px; border-radius: 15px; border: 2px solid #f1c40f; }
-  .title-box h1 { font-size: 22px; color: #7d6608; }
-  .title-box p { font-size: 12px; color: #9a7d0a; margin-top: 4px; }
+  .title-box { text-align: center; background: #f9e79f; padding: 10px; border-radius: 12px; border: 2px solid #f1c40f; }
+  .title-box h1 { font-size: 19px; color: #7d6608; }
+
+  /* 탭 메뉴 */
+  .tabs { display: flex; gap: 5px; }
+  .tab-btn {
+    flex: 1; padding: 8px; border: 2px solid #f1c40f; background: #fef9e7;
+    border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; color: #7d6608;
+  }
+  .tab-btn.active { background: #f1c40f; color: #fff; }
+  .tab-content { display: none; flex-direction: column; gap: 8px; }
+  .tab-content.active { display: flex; }
 
   .stat-card {
-    background: white; border: 2px solid #f7dc6f; border-radius: 12px;
-    padding: 12px 15px; display: flex; justify-content: space-between; align-items: center;
+    background: white; border: 2px solid #f7dc6f; border-radius: 10px;
+    padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;
   }
-  .stat-label { font-size: 14px; color: #666; font-weight: bold; }
-  .stat-value { font-size: 20px; color: #27ae60; font-weight: 900; }
+  .stat-label { font-size: 13px; color: #555; font-weight: bold; }
+  .stat-value { font-size: 16px; color: #27ae60; font-weight: 900; }
 
   .btn {
-    width: 100%; padding: 14px; border: none; border-radius: 12px;
-    font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s, opacity 0.2s;
-    color: white; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+    width: 100%; padding: 11px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: bold; cursor: pointer; transition: transform 0.1s;
+    color: white; box-shadow: 0 3px 0 rgba(0,0,0,0.2);
   }
-  .btn:active { transform: translateY(3px); box-shadow: none; }
+  .btn:active { transform: translateY(2px); box-shadow: none; }
   .btn:disabled { background: #bdc3c7 !important; cursor: not-allowed; box-shadow: none; opacity: 0.7; }
 
-  .btn-harvest { background: #f39c12; font-size: 18px; }
+  .btn-harvest { background: #f39c12; font-size: 16px; }
   .btn-rebirth { background: #8e44ad; }
   .btn-evolve { background: #2980b9; }
+  .btn-ascend { background: #d35400; }
+  .btn-power { background: #16a085; text-align: left; display: flex; justify-content: space-between; align-items: center; }
 
-  .info-box {
-    background: #fef9e7; border-radius: 10px; padding: 12px;
-    font-size: 13px; color: #555; line-height: 1.5; border: 1px dashed #f1c40f;
+  .pad-list { display: flex; flex-direction: column; gap: 5px; max-height: 220px; overflow-y: auto; }
+  .pad-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: white; padding: 7px 10px; border-radius: 8px; border: 1px solid #eee; font-size: 12px;
   }
-  .pad-legend { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
-  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: bold; }
-  .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+  .pad-buy-btn {
+    background: #2ecc71; color: white; border: none; padding: 5px 8px;
+    border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
+  }
+  .pad-buy-btn:disabled { background: #ccc; cursor: not-allowed; }
 </style>
-<!-- Three.js 3D 엔진 불러오기 -->
-<script src="https://cloudflare.com"></script>
+<script src="https://unpkg.com"></script>
 </head>
 <body>
 
 <div id="game-container">
+  <div id="pad-status">📍 다음 발판: 레몬 스탠드 ($1)</div>
   <div id="toast">알림 메시지</div>
-  <div id="controls-hint">🎮 이동: <b>W, A, S, D</b> 또는 <b>방향키</b> | 바닥의 발판을 밟아 공장을 지으세요!</div>
+  
+  <!-- 원작 문자 거래 팝업 -->
+  <div id="sms-popup">
+    <div class="sms-header">
+      <span id="sms-sender">📱 친구의 문자 메시지</span>
+      <span style="color:#e74c3c;">거래 제안!</span>
+    </div>
+    <div class="sms-body" id="sms-text">안녕! 네 공장의 신선한 과일을 사고 싶어.</div>
+    <div class="sms-btns">
+      <button class="sms-btn" style="background:#27ae60;" onclick="handleSms('accept')">수락</button>
+      <button class="sms-btn" style="background:#f39c12;" onclick="handleSms('haggle')">가격 흥정</button>
+      <button class="sms-btn" style="background:#95a5a6;" onclick="handleSms('decline')">거절</button>
+    </div>
+  </div>
+
+  <div id="controls-hint">🎮 이동: <b>W, A, S, D</b> 또는 <b>방향키</b> | 바닥 발판을 밟거나 오른쪽 목록에서 구매!</div>
 </div>
 
 <div id="ui-panel">
   <div class="title-box">
     <h1>🍋 과일 공장 짓기!</h1>
-    <p>3D 발판을 밟아 최고의 공장을 완성하세요</p>
   </div>
 
-  <div class="stat-card">
-    <span class="stat-label">💰 보유 자금</span>
-    <span class="stat-value" id="money-display">$10</span>
-  </div>
-  <div class="stat-card">
-    <span class="stat-label">⚡ 초당 자동 수입</span>
-    <span class="stat-value" id="income-display" style="color:#e67e22;">$0 /초</span>
-  </div>
-  <div class="stat-card">
-    <span class="stat-label">👽 외계인 투자자</span>
-    <span class="stat-value" id="investor-display" style="color:#8e44ad;">0명</span>
-  </div>
-  <div class="stat-card">
-    <span class="stat-label">🍎 현재 과일 등급</span>
-    <span class="stat-value" id="fruit-display" style="color:#c0392b;">레몬 (x1)</span>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('main')">🏭 공장 운영</button>
+    <button class="tab-btn" onclick="switchTab('rebirth')">👽 환생/진화</button>
+    <button class="tab-btn" onclick="switchTab('powers')">⚡ 능력 상점</button>
   </div>
 
-  <button class="btn btn-harvest" id="manual-btn" onclick="manualWork()">🍋 직접 레몬 짜기 (+$5)</button>
-  <button class="btn btn-rebirth" id="rebirth-btn" onclick="doRebirth()" disabled>👽 외계인 환생 (필요: $10,000)</button>
-  <button class="btn btn-evolve" id="evolve-btn" onclick="doEvolve()" disabled>🌌 과일 진화 x42배 (투자자 100명)</button>
+  <!-- 탭 1: 공장 운영 -->
+  <div id="tab-main" class="tab-content active">
+    <div class="stat-card">
+      <span class="stat-label">💰 보유 자금</span>
+      <span class="stat-value" id="money-display">$1</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">⚡ 초당 자동 수입</span>
+      <span class="stat-value" id="income-display" style="color:#e67e22;">$0 /초</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">🍎 과일 등급 (속도)</span>
+      <span class="stat-value" id="fruit-display" style="color:#c0392b;">Lemon (x1)</span>
+    </div>
 
-  <div class="info-box">
-    <b>💡 게임 팁:</b><br>
-    • 매니저(파란 발판)를 고용하면 직접 클릭 버튼이 잠기고 <b>초고속 자동 정산</b>이 시작됩니다!<br>
-    • 외계인 투자자 1명당 수입 <b>+5%</b> 보너스!
+    <button class="btn btn-harvest" id="manual-btn" onclick="manualWork()">🍋 직접 과일 수확 (+$1)</button>
+
+    <div style="font-size:13px; font-weight:bold; color:#7d6608; margin-top:4px;">🏗️ 공장 건물 & 매니저 발판 목록</div>
+    <div class="pad-list" id="pad-list-container"></div>
   </div>
 
-  <div class="pad-legend">
-    <div class="legend-item"><span class="dot" style="background:#2ecc71;"></span> 초록 발판: 새 공장 건물 짓기</div>
-    <div class="legend-item"><span class="dot" style="background:#3498db;"></span> 파란 발판: 자동화 매니저 고용</div>
-    <div class="legend-item"><span class="dot" style="background:#f1c40f;"></span> 노란 발판: 생산량 2배 업그레이드</div>
+  <!-- 탭 2: 환생 및 진화 (원작 시스템 반영) -->
+  <div id="tab-rebirth" class="tab-content">
+    <div class="stat-card">
+      <span class="stat-label">👽 외계인 투자자</span>
+      <span class="stat-value" id="investor-display" style="color:#8e44ad;">0명 (+0%)</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-label">😇 승천 헤일로</span>
+      <span class="stat-value" id="halo-display" style="color:#d35400;">0개 (x1)</span>
+    </div>
+
+    <button class="btn btn-rebirth" id="rebirth-btn" onclick="doRebirth()" disabled>
+      👽 외계인 환생 (필요: $10,000)
+    </button>
+    <p style="font-size:11px; color:#666;">* 공장이 초기화되지만 <b>외계인 투자자</b>를 얻어 1명당 수입이 영구 증가합니다.</p>
+
+    <button class="btn btn-evolve" id="evolve-btn" onclick="doEvolve()" disabled>
+      🌌 공허 진화 x42배 (필요 투자자: 500명)
+    </button>
+    <p style="font-size:11px; color:#666;">* 투자자까지 초기화되지만 과일이 진화하여 <b>생산속도가 42배</b>씩 곱해집니다!</p>
+
+    <button class="btn btn-ascend" id="ascend-btn" onclick="doAscend()" disabled>
+      😇 최종 승천 x7.77배 (모든 건물 건설 시)
+    </button>
+    <p style="font-size:11px; color:#666;">* 모든 진행이 초기화되지만 영구 <b>헤일로와 x7.77 돈 배수</b>를 얻습니다.</p>
+  </div>
+
+  <!-- 탭 3: 능력 상점 -->
+  <div id="tab-powers" class="tab-content">
+    <div class="stat-card">
+      <span class="stat-label">👽 보유 외계인 투자자</span>
+      <span class="stat-value" id="investor-shop-display" style="color:#8e44ad;">0명</span>
+    </div>
+
+    <button class="btn btn-power" id="pwr-speed" onclick="buyPower('speed')">
+      <span>👟 더 빨리 달리기 (현재 x1)</span>
+      <span id="pwr-speed-cost">100명</span>
+    </button>
+    <button class="btn btn-power" id="pwr-harvest" onclick="buyPower('harvest')">
+      <span>🌳 전문 채집가 (수확 2배)</span>
+      <span id="pwr-harvest-cost">250명</span>
+    </button>
+    <button class="btn btn-power" id="pwr-manager" onclick="buyPower('manager')">
+      <span>🤖 전체 매니저 일괄 고용</span>
+      <span id="pwr-manager-cost">1,000명</span>
+    </button>
   </div>
 </div>
 
 <script>
-// 게임 데이터 상태
-let money = 10;
-let baseIncome = 0;
-let multiplier = 1;
+// 1. 원작 기반 데이터 설정
+let money = 1;
 let investors = 0;
 let fruitStage = 0;
-let hasManager = false;
+let halos = 0;
 
+// 능력 레벨
+let speedLevel = 0;
+let harvestLevel = 0;
+
+// 10단계 과일 진화 (원작 순서 반영)
 const fruits = [
-  { name: "레몬 (Lemon)", mult: 1, color: 0xf1c40f },
-  { name: "오렌지 (Orange)", mult: 42, color: 0xe67e22 },
-  { name: "라임 (Lime)", mult: 1764, color: 0x2ecc71 },
-  { name: "자몽 (Grapefruit)", mult: 74088, color: 0xe74c3c },
-  { name: "보이드 레몬 (Void)", mult: 3111696, color: 0x9b59b6 }
+  { name: "Lemon (레몬)", mult: 1, reqInv: 0 },
+  { name: "Orange (오렌지)", mult: 42, reqInv: 500 },
+  { name: "Lime (라임)", mult: 1764, reqInv: 25000 },
+  { name: "Grapefruit (자몽)", mult: 74088, reqInv: 1000000 },
+  { name: "Tangerine (귤)", mult: 3111696, reqInv: 50000000 },
+  { name: "Pomelo (포멜로)", mult: 130691232, reqInv: 2500000000 },
+  { name: "Abyssalime (심연라임)", mult: 5489031744, reqInv: 1e11 },
+  { name: "Nullfruit (널과일)", mult: 2.3e11, reqInv: 5e12 },
+  { name: "Voidlemon (공허레몬)", mult: 9.68e12, reqInv: 2e14 },
+  { name: "Purity (퓨리티)", mult: 4.06e14, reqInv: 1e16 }
 ];
 
-// 숫자 단위 축약 함수 (M, B, T, Qd...)
-function formatNum(num) {
-  if (num < 1000) return Math.floor(num).toLocaleString();
-  const units = ["", "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "Oc"];
-  const tier = Math.floor(Math.log10(num) / 3);
-  if (tier >= units.length) return num.toExponential(2);
-  const scale = Math.pow(10, tier * 3);
-  return (num / scale).toFixed(2) + " " + units[tier];
-}
-
-function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.innerText = msg;
-  t.style.opacity = 1;
-  setTimeout(() => { t.style.opacity = 0; }, 2000);
-}
-
-// 3D Three.js 세팅
-const container = document.getElementById("game-container");
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87CEEB);
-
-const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 1000);
-camera.position.set(0, 18, 22);
-camera.lookAt(0, 0, 0);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(container.clientWidth, container.clientHeight);
-renderer.shadowMap.enabled = true;
-container.appendChild(renderer.domElement);
-
-// 조명
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(10, 20, 10);
-dirLight.castShadow = true;
-scene.add(dirLight);
-
-// 잔디 바닥 및 공장 부지
-const groundGeo = new THREE.BoxGeometry(40, 1, 40);
-const groundMat = new THREE.MeshLambertMaterial({ color: 0x7bed9f });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.position.y = -0.5;
-ground.receiveShadow = true;
-scene.add(ground);
-
-const floorGeo = new THREE.BoxGeometry(22, 0.2, 22);
-const floorMat = new THREE.MeshLambertMaterial({ color: 0xdfe4ea });
-const floor = new THREE.Mesh(floorGeo, floorMat);
-floor.position.y = 0.05;
-floor.receiveShadow = true;
-scene.add(floor);
-
-// 플레이어 캐릭터
-const playerGroup = new THREE.Group();
-const bodyMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 1.8, 1.2),
-  new THREE.MeshLambertMaterial({ color: 0xff6b81 })
-);
-bodyMesh.position.y = 0.9;
-bodyMesh.castShadow = true;
-const headMesh = new THREE.Mesh(
-  new THREE.BoxGeometry(1.0, 1.0, 1.0),
-  new THREE.MeshLambertMaterial({ color: 0xffeaa7 })
-);
-headMesh.position.y = 2.3;
-headMesh.castShadow = true;
-playerGroup.add(bodyMesh, headMesh);
-playerGroup.position.set(0, 0.1, 7);
-scene.add(playerGroup);
-
-// 건설된 오브젝트 그룹
-const builtGroup = new THREE.Group();
-scene.add(builtGroup);
-
-function spawnBuilding(type) {
-  let mesh;
-  if (type === "stand") {
-    mesh = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 2), new THREE.MeshLambertMaterial({ color: 0xd35400 }));
-    mesh.position.set(-5, 1.1, -3);
-  } else if (type === "walls") {
-    mesh = new THREE.Mesh(new THREE.BoxGeometry(18, 3, 0.5), new THREE.MeshLambertMaterial({ color: 0xf5f6fa }));
-    mesh.position.set(0, 1.6, -9);
-  } else if (type === "juicer") {
-    mesh = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 2.5, 16), new THREE.MeshLambertMaterial({ color: 0xf1c40f }));
-    mesh.position.set(0, 1.35, -3);
-  } else if (type === "depot") {
-    mesh = new THREE.Mesh(new THREE.BoxGeometry(4, 3.5, 4), new THREE.MeshLambertMaterial({ color: 0x2ecc71 }));
-    mesh.position.set(5, 1.85, -3);
-  } else if (type === "lemonx") {
-    mesh = new THREE.Mesh(new THREE.ConeGeometry(2.5, 6, 8), new THREE.MeshLambertMaterial({ color: 0x9b59b6 }));
-    mesh.position.set(0, 3.1, -6);
-  }
-  if (mesh) {
-    mesh.castShadow = true;
-    builtGroup.add(mesh);
-  }
-}
-
-// 발판 데이터 정의
-const padConfigs = [
-  { id: 0, name: "레몬 가판대 ($10)", cost: 10, x: -5, z: 2, color: 0x2ecc71, action: () => { baseIncome += 15; spawnBuilding("stand"); } },
-  { id: 1, name: "자동 매니저 고용 ($100)", cost: 100, x: 0, z: 2, color: 0x3498db, action: () => { hasManager = true; baseIncome += 50; spawnBuilding("juicer"); } },
-  { id: 2, name: "공장 외벽 건설 ($500)", cost: 500, x: 5, z: 2, color: 0x2ecc71, action: () => { baseIncome += 200; spawnBuilding("walls"); } },
-  { id: 3, name: "수입 2배 즙짜기 ($2,500)", cost: 2500, x: -5, z: -6, color: 0xf1c40f, action: () => { multiplier *= 2; } },
-  { id: 4, name: "대형 과일 창고 ($15,000)", cost: 15000, x: 5, z: -6, color: 0x2ecc71, action: () => { baseIncome += 3000; spawnBuilding("depot"); } },
-  { id: 5, name: "최종 레몬X 타워 ($200,000)", cost: 200000, x: 0, z: -2, color: 0x2ecc71, action: () => { baseIncome += 50000; multiplier *= 5; spawnBuilding("lemonx"); } }
-];
-
-let activePads = [];
-
-function createPads() {
-  activePads.forEach(p => scene.remove(p.mesh));
-  activePads = [];
-
-  padConfigs.forEach(cfg => {
-    const geo = new THREE.CylinderGeometry(1.5, 1.5, 0.3, 24);
-    const mat = new THREE.MeshLambertMaterial({ color: cfg.color });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(cfg.x, 0.25, cfg.z);
-    scene.add(mesh);
-    activePads.push({ ...cfg, mesh, bought: false });
-  });
-}
-
-createPads();
-
-// 키보드 이동
-const keys = {};
+// 8대 수입원 + 자동화 매니저 + 계단 기념비 (총 12개 발판)
+const buildingConfigs = [
+  { id: 0, name: "1. Lemon Stand (레몬 스탠드)", baseCost: 1, income: 2, x: -7, z: 6, color: 0x2ecc71, type: "stand" },
+  { id: 1, name: "🤖 스탠드 매니저 고용", baseCost: 100, income: 10, x: -3, z: 6, color: 0x3498db, type: "mgr", isMgr: true },
+  { id: 2, name: "2. Lemondash (레몬대시)", baseCost: 1500, income: 120, x: 3, z: 6, color: 0x2ecc71, type: "dash" },
+  { id: 3, name: "🤖 레몬대시 매니저", baseCost: 15000, income: 600, x: 7, z: 6, color: 0x3498db, type: "mgr", isMgr: true },
